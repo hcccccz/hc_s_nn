@@ -1,13 +1,6 @@
 import numpy as np
 import os
 import pickle
-key_file = {
-    'train_img':'train-images.idx3-ubyte',
-    'train_label':'train-labels.idx1-ubyte',
-    'test_img':'t10k-images.idx3-ubyte',
-    'test_label':'t10k-labels.idx1-ubyte'
-}
-
 
 dataset_dir = os.path.dirname(os.path.abspath(__file__))
 save_file = dataset_dir + "/mnist.pkl"
@@ -18,7 +11,7 @@ img_dim = (1, 28, 28)
 img_size = 784
 
 
-def _load_label(file_name):
+def _load_label(dataset_dir, file_name):
     file_path = dataset_dir + "/" + file_name
 
     print("Converting " + file_name + " to NumPy Array ...")
@@ -30,7 +23,7 @@ def _load_label(file_name):
 
 
 
-def _load_img(file_name):
+def _load_img(dataset_dir, file_name):
     file_path = dataset_dir + "/" + file_name
     print("Converting " + file_name + " to NumPy Array ...")
     with open(file_path, "rb") as f:
@@ -43,19 +36,27 @@ def _load_img(file_name):
 
 
 
-def _convert_numpy():
+def _convert_numpy(dataset_dir, key_file):
     dataset = {}
-    dataset['train_img'] =  _load_img(key_file['train_img'])
-    dataset['train_label'] = _load_label(key_file['train_label'])
-    dataset['test_img'] = _load_img(key_file['test_img'])
-    dataset['test_label'] = _load_label(key_file['test_label'])
+    dataset['train_img'] =  _load_img(dataset_dir, key_file['train_img'])
+    dataset['train_label'] = _load_label(dataset_dir, key_file['train_label'])
+    dataset['test_img'] = _load_img(dataset_dir, key_file['test_img'])
+    dataset['test_label'] = _load_label(dataset_dir, key_file['test_label'])
 
     return dataset
 
 
 
-def init_mnist():
-    dataset = _convert_numpy()
+def init_mnist(dataset_dir=os.path.dirname(os.path.abspath(__file__))):
+    key_file = {
+    'train_img':'train-images.idx3-ubyte',
+    'train_label':'train-labels.idx1-ubyte',
+    'test_img':'t10k-images.idx3-ubyte',
+    'test_label':'t10k-labels.idx1-ubyte'
+    }
+
+
+    dataset = _convert_numpy(dataset_dir, key_file)
     print("Creating pickle file ...")
     with open(save_file, 'wb') as f:
         pickle.dump(dataset, f, -1)
@@ -68,7 +69,7 @@ def _change_one_hot_label(X):
         row[X[idx]] = 1
 
     return T
-def load_mnist(normalize=True, flatten=True, one_hot_label=False):
+def load_mnist(dataset_dir = os.path.dirname(os.path.abspath(__file__)), normalize=True, flatten=True, one_hot_label=False):
     """MNISTデータセットの読み込み
 
     Parameters
@@ -84,7 +85,7 @@ def load_mnist(normalize=True, flatten=True, one_hot_label=False):
     (訓練画像, 訓練ラベル), (テスト画像, テストラベル)
     """
     if not os.path.exists(save_file):
-        init_mnist()
+        init_mnist(dataset_dir)
 
     with open(save_file, 'rb') as f:
         dataset = pickle.load(f)

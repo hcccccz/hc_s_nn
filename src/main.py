@@ -2,12 +2,11 @@ import sys, os
 sys.path.append(os.pardir)
 from data.mnist import load_mnist
 from hc_s_nn import Network
-from t_nn import TwoLayerNet
 from common.trainer import Trainer
 from common.optimizers import SGD
 from sklearn.model_selection import train_test_split
 from common.np import *
-(x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, one_hot_label=True)
+(x_train, t_train), (x_test, t_test) = load_mnist(dataset_dir="/home/hc/Documents",normalize=True, one_hot_label=True)
 X_train, X_test, T_train, T_test = train_test_split(x_train, t_train)
 
 X_train=np.asarray(X_train)
