@@ -6,33 +6,67 @@ from common.layers import Affine, SoftmaxWithLoss, Relu
 
 class Network:
 
-    def __init__(self, feature_size, hidden_size, layer_size, out_size): #lauyer_size >= 2
+    def __init__(self, feature_size, hidden_size_list, out_size): #lauyer_size >= 2
 
+        self.activation_out ={}
         self.params = {}
         self.layers = OrderedDict()
 
-        self.params["w0"] = 0.01 * np.random.randn(feature_size, hidden_size)
-        self.params["b0"] = np.zeros(hidden_size)
+        self.feature_size = feature_size
+        self.out_size = out_size
+        self.hidden_size_list = hidden_size_list
+        self.hidden_layer_num = len(self.hidden_size_list)
 
-        self.layers["Affine0"] = Affine(self.params["w0"], self.params["b0"])
-        self.layers["Relu0"] = Relu()
-        for i in range(1,layer_size - 1):
-            self.params["w"+str(i)] = 0.01 * np.random.randn(hidden_size, hidden_size)
-            self.params["b"+str(i)] = np.zeros(hidden_size)
+        self.__init__weight("Relu")
 
-            self.layers["Affine"+str(i)] = Affine(self.params["w"+str(i)], self.params["b"+str(i)])
-            self.layers["Relu"+str(i)] = Relu()
+        for idx in range(1, self.hidden_layer_num + 1):
+            """
+            hidden_layer_num = 3
+            1, 2, 3
+            """
+            self.layers["Affine" + str(idx)] = Affine(self.params["W" + str(idx)],
+                                                      self.params["b" + str(idx)])
+            self.layers["activate" + str(idx)] = Relu()
 
-        self.params["w"+str(layer_size-1)] = 0.01 * np.random.randn(hidden_size, out_size)
-        self.params["b"+str(layer_size-1)] = np.zeros(out_size)
-        self.layers["Affine"+str(layer_size-1)] = Affine(self.params["w"+str(layer_size-1)], self.params["b"+str(layer_size-1)])
+        idx = self.hidden_layer_num + 1
+        self.layers["Affine" + str(idx)] = Affine(self.params["W" + str(idx)],
+                                                  self.params["b" + str(idx)])
+
+
 
         self.lastlayer = SoftmaxWithLoss()
 
-    def predict(self, x):
-        for layer in self.layers.values():
+    def __init__weight(self, weight_init_std):
+        """
+        默认3层hidden 每层100
+        all_size_list 就有 [784, 100, 100, 100, 10] = 5
+        (784, 100)
+        (100,100)
+        (100,100)
+        (100,10)
 
-            x = layer.forward(x)
+        """
+
+        all_size_list = [self.feature_size] + self.hidden_size_list + [self.out_size]
+
+        for idx in range(1, len(all_size_list)):
+            scale = weight_init_std
+
+            if str(scale).lower() in ("relu", "he"):
+                scale = np.sqrt(2.0 / all_size_list[idx - 1])
+            elif str(scale).lower() in ("sigmoid", "xavier"):
+                scale = np.sqrt(1.0 / all_size_list[idx - 1])
+
+            self.params['W' + str(idx)] = scale * np.random.randn(all_size_list[idx-1], all_size_list[idx])
+            self.params['b' + str(idx)] = np.zeros(all_size_list[idx])
+
+
+    def predict(self, x):
+        for layer_name in self.layers.keys():
+            x = self.layers[layer_name].forward(x)
+            if layer_name.startswith("Relu"):
+                self.activation_out[layer_name] = x
+
 
         return x
 
@@ -56,17 +90,13 @@ class Network:
         for layer_name in self.layers.keys():
             if layer_name.startswith("Affine"):
 
-                grads["w"+layer_name.replace("Affine","")], grads["b"+layer_name.replace("Affine","")] = self.layers[layer_name].dW, self.layers[layer_name].db
+                grads["W"+layer_name.replace("Affine","")], grads["b"+layer_name.replace("Affine","")] = self.layers[layer_name].dW, self.layers[layer_name].db
 
 
         return grads
 
-    def test(self):
-        for layer_name in self.layers.keys():
-            if layer_name.startswith("Affine"):
-                print(self.layers[layer_name].W.shape)
-    # def print_struct(self):
-
+    def get_act_out(self):
+        return self.activation_out
 
     def accuracy(self, x, t):
         y = self.predict(x)

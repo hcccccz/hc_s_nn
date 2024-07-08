@@ -1,6 +1,6 @@
 from time import time
 from common.np import *
-
+import matplotlib.pyplot as plt
 class Trainer:
 
     def __init__(self, network, x_train, t_train, x_test, t_test,
@@ -34,14 +34,15 @@ class Trainer:
         self.train_loss_list = []
 
     def train_step(self):
+
         t1 = time()
         batch_mask = np.random.choice(self.train_size, self.batch_size)
         x_batch = self.x_train[batch_mask]
         t_batch = self.t_train[batch_mask]
 
-        grads = self.network.gradient(x_batch, t_batch)
+        self.grads = self.network.gradient(x_batch, t_batch)
 
-        # "=---------------------------------------------"
+        "=---------------------------------------------"
         # print("grad:")
         # for grad in grads.keys():
         #     print(grad+":",end="")
@@ -55,7 +56,7 @@ class Trainer:
         # "----------------------------------------------"
 
 
-        self.optimizer.update(self.network.params,grads = grads)
+        self.optimizer.update(self.network.params,grads = self.grads)
         loss = self.network.loss(x_batch, t_batch)
 
 
@@ -73,6 +74,25 @@ class Trainer:
         t2 = time()
         print("iter: {}, epoch: {}, loss: {}, train acc: {}, test acc: {}, time_iter: {}".format(self.current_iter,
                                                                                   self.current_epoch, loss, train_accuracy, test_accuracy, t2 - t1))
+
     def train(self):
         for i in range(self.max_iter):
             self.train_step()
+            if i % 10 == 0:
+                activation_out = self.network.get_act_out()
+                self.save_act_out(activation_out, i)
+
+    def save_grad(self, grads, step):
+        for grad in grads.keys():
+            if grad.startswith("w"):
+                dummy = np.asnumpy(np.copy(grads[grad]))
+                plt.hist(dummy.flatten())
+                plt.savefig("temp/"+grad+"_"+str(step))
+                plt.clf()   # Clear figure
+
+    def save_act_out(self, activation_out, step):
+        for out in activation_out.keys():
+            dummy = np.asnumpy(np.copy(activation_out[out]))
+            plt.hist(dummy.flatten(),30,range=(0,1))
+            plt.savefig("temp/"+out+"_"+str(step))
+            plt.clf()
