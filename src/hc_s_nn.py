@@ -1,15 +1,15 @@
 from common.np import *
 from collections import OrderedDict
-from common.layers import Affine, SoftmaxWithLoss, Relu
+from common.layers import Affine, SoftmaxWithLoss, Relu, BatchNormalization
 import sys
 
 
-print(sys.path)
 class Network:
 
-    def __init__(self, feature_size, hidden_size_list, out_size, weight_init_std): #lauyer_size >= 2
+    def __init__(self, feature_size, hidden_size_list:list, out_size:int, weight_init_std:any, use_batchnorm=False): #lauyer_size >= 2
 
         self.activation_out ={}
+
         self.params = {}
         self.layers = OrderedDict()
 
@@ -17,6 +17,8 @@ class Network:
         self.out_size = out_size
         self.hidden_size_list = hidden_size_list
         self.hidden_layer_num = len(self.hidden_size_list)
+
+        self.use_batchnorm = use_batchnorm
 
         self.__init__weight(weight_init_std)
 
@@ -27,13 +29,16 @@ class Network:
             """
             self.layers["Affine" + str(idx)] = Affine(self.params["W" + str(idx)],
                                                       self.params["b" + str(idx)])
+            if use_batchnorm:
+                self.params["gamma" + str(idx)] = np.ones(hidden_size_list[idx - 1]) #-1
+                self.params["beta" + str(idx)] = np.zeros(hidden_size_list[idx -1 ])
+                self.layers["BatchNorm" + str(idx)] = BatchNormalization(self.params["gamma" + str(idx)], self.params["beta" + str(idx)])
+
             self.layers["activate" + str(idx)] = Relu()
 
         idx = self.hidden_layer_num + 1
         self.layers["Affine" + str(idx)] = Affine(self.params["W" + str(idx)],
                                                   self.params["b" + str(idx)])
-
-
 
         self.lastlayer = SoftmaxWithLoss()
 
@@ -68,7 +73,6 @@ class Network:
             if layer_name.startswith("Relu"):
                 self.activation_out[layer_name] = x
 
-
         return x
 
     def loss(self, x, t):
@@ -83,15 +87,19 @@ class Network:
 
         layers = list(self.layers.values())
         layers.reverse()
+
         for layer in layers:
             dout = layer.backward(dout)
 
         grads = {}
 
         for layer_name in self.layers.keys():
-            if layer_name.startswith("Affine"):
-
+            if layer_name.startswith("Affine"): #get all affine layer
                 grads["W"+layer_name.replace("Affine","")], grads["b"+layer_name.replace("Affine","")] = self.layers[layer_name].dW, self.layers[layer_name].db
+
+            if layer_name.startswith("BatchNorm"): #get all batch norm layer
+                grads["gamma" + layer_name.replace("BatchNorm","")] = self.layers[layer_name].dgamma
+                grads["beta" + layer_name.replace("BatchNorm", "")] = self.layers[layer_name].dbeta
 
 
         return grads
@@ -108,6 +116,6 @@ class Network:
 
 if __name__ == '__main__':
 
-    net = Network(784,10,4,10)
+    net = Network(784,10,4,10, use_batchnorm=False)
     print(net.params.keys())
     print(net.test().keys())

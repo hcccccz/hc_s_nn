@@ -1,6 +1,10 @@
 from time import time
 from common.np import *
 import matplotlib.pyplot as plt
+from pprint import pprint
+
+
+
 class Trainer:
 
     def __init__(self, network, x_train, t_train, x_test, t_test,
@@ -16,8 +20,6 @@ class Trainer:
         遍历多少次整个数据
         """
         self.batch_size = mini_batch_size
-
-
         self.train_size = self.x_train.shape[0]
         self.iter_per_epoch = max(self.train_size / self.batch_size, 1)
         """
@@ -27,12 +29,12 @@ class Trainer:
         """
         完成一个epoch需要多次iter，完成整个epochs为max_iter
         """
-
         self.current_iter = 0
         self.current_epoch = 0
 
         self.train_loss_list = []
-
+        self.train_acc_list = []
+        self.test_acc_list = []
 
     def train_step(self):
 
@@ -56,7 +58,6 @@ class Trainer:
         #     print(self.network.params[param].shape)
         # "----------------------------------------------"
 
-
         self.optimizer.update(self.network.params,grads = self.grads)
         loss = self.network.loss(x_batch, t_batch)
 
@@ -68,11 +69,15 @@ class Trainer:
             self.current_epoch += 1
 
         train_accuracy = self.network.accuracy(self.x_train, self.t_train)
-
         test_accuracy = self.network.accuracy(self.x_test, self.t_test)
 
+        self.train_acc_list.append(train_accuracy)
+        self.test_acc_list.append(test_accuracy)
+
         self.current_iter += 1
+
         t2 = time()
+
         print("iter: {}, epoch: {}, loss: {}, train acc: {}, test acc: {}, time_iter: {}".format(self.current_iter,
                                                                                   self.current_epoch, loss, train_accuracy, test_accuracy, t2 - t1))
 
@@ -82,9 +87,9 @@ class Trainer:
             if i % 10 == 0:
                 activation_out = self.network.get_act_out()
                 # self.save_act_out(activation_out, i)
-        self.plot(list(range(self.max_iter)), self.train_loss_list)
+        self.plot(list(range(self.max_iter)), self.train_loss_list) #plot iterations and loss
 
-    def save_grad(self, grads, step):
+    def save_grad(self, grads, step): #visualize gradient
         for grad in grads.keys():
             if grad.startswith("w"):
                 dummy = np.asnumpy(np.copy(grads[grad]))
@@ -92,7 +97,7 @@ class Trainer:
                 plt.savefig("temp/"+grad+"_"+str(step))
                 plt.clf()   # Clear figure
 
-    def save_act_out(self, activation_out, step):
+    def save_act_out(self, activation_out, step): #visualize activation function output
         for out in activation_out.keys():
             dummy = np.asnumpy(np.copy(activation_out[out]))
             plt.hist(dummy.flatten(),30,range=(0,1))
