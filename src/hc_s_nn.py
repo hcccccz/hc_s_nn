@@ -1,12 +1,13 @@
 from common.np import *
 from collections import OrderedDict
 from common.layers import Affine, SoftmaxWithLoss, Relu
+import sys
 
 
-
+print(sys.path)
 class Network:
 
-    def __init__(self, feature_size, hidden_size_list, out_size): #lauyer_size >= 2
+    def __init__(self, feature_size, hidden_size_list, out_size, weight_init_std): #lauyer_size >= 2
 
         self.activation_out ={}
         self.params = {}
@@ -17,7 +18,7 @@ class Network:
         self.hidden_size_list = hidden_size_list
         self.hidden_layer_num = len(self.hidden_size_list)
 
-        self.__init__weight("Relu")
+        self.__init__weight(weight_init_std)
 
         for idx in range(1, self.hidden_layer_num + 1):
             """

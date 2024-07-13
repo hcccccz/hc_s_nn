@@ -33,6 +33,7 @@ class Trainer:
 
         self.train_loss_list = []
 
+
     def train_step(self):
 
         t1 = time()
@@ -80,7 +81,8 @@ class Trainer:
             self.train_step()
             if i % 10 == 0:
                 activation_out = self.network.get_act_out()
-                self.save_act_out(activation_out, i)
+                # self.save_act_out(activation_out, i)
+        self.plot(list(range(self.max_iter)), self.train_loss_list)
 
     def save_grad(self, grads, step):
         for grad in grads.keys():
@@ -96,3 +98,7 @@ class Trainer:
             plt.hist(dummy.flatten(),30,range=(0,1))
             plt.savefig("temp/"+out+"_"+str(step))
             plt.clf()
+
+    def plot(self, x, y):
+        plt.plot(x,y)
+        plt.savefig("loss")
